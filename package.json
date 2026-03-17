@@ -22,8 +22,10 @@
   "homepage": "https://github.com/kirkorovka/SoccerStat#readme",
   "description": "",
   "dependencies": {
+    "date-fns": "^4.1.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
