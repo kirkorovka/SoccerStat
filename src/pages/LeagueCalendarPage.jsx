@@ -11,6 +11,9 @@ function LeagueCalendarPage() {
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchLeagueData();
@@ -19,8 +22,6 @@ function LeagueCalendarPage() {
   useEffect(() => {
     if (dateFrom && dateTo) {
       fetchMatchesWithFilter();
-    } else {
-      fetchLeagueData();
     }
   }, [dateFrom, dateTo, leagueId]);
 
@@ -33,6 +34,7 @@ function LeagueCalendarPage() {
       ]);
       setLeague(leagueData);
       setMatches(matchesData.matches || []);
+      setCurrentPage(1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -45,11 +47,7 @@ function LeagueCalendarPage() {
       setLoading(true);
       const matchesData = await getLeagueMatches(leagueId, dateFrom, dateTo);
       setMatches(matchesData.matches || []);
-      
-      if (!league) {
-        const leagueData = await getLeagueById(leagueId);
-        setLeague(leagueData);
-      }
+      setCurrentPage(1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,20 +72,15 @@ function LeagueCalendarPage() {
     });
   };
 
-  const groupedMatches = matches.reduce((groups, match) => {
-    const date = formatDate(match.utcDate);
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(match);
-    return groups;
-  }, {});
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentMatches = matches.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(matches.length / itemsPerPage);
 
-  const sortedDates = Object.keys(groupedMatches).sort((a, b) => {
-    const [dayA, monthA, yearA] = a.split('.').map(Number);
-    const [dayB, monthB, yearB] = b.split('.').map(Number);
-    return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
-  });
+  const goToPage = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   if (loading && !league) {
     return (
@@ -113,108 +106,172 @@ function LeagueCalendarPage() {
 
   return (
     <div>
-      <nav aria-label="breadcrumb" className="mb-4">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item">
-            <Link to="/" className="text-decoration-none">Лиги</Link>
-          </li>
-          <li className="breadcrumb-item active" aria-current="page">
-            {league?.name || 'Загрузка...'}
-          </li>
-        </ol>
+      <nav className="mb-3">
+        <Link to="/" className="text-decoration-none">Лиги</Link>
+        <span className="mx-2">›</span>
+        <span className="text-secondary">{league?.name || 'Загрузка...'}</span>
       </nav>
 
-      <div className="mb-4">
-        <h1 className="h2">{league?.name || 'Календарь лиги'}</h1>
-        {league?.area && (
-          <p className="text-secondary">{league.area.name}</p>
-        )}
-      </div>
-
-      <div className="card mb-4">
-        <div className="card-body">
-          <h5 className="card-title mb-3">Фильтр по дате</h5>
-          <div className="row g-3 align-items-end">
-            <div className="col-md-4">
-              <label htmlFor="dateFrom" className="form-label">С</label>
-              <input
-                type="date"
-                className="form-control"
-                id="dateFrom"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
-            <div className="col-md-4">
-              <label htmlFor="dateTo" className="form-label">По</label>
-              <input
-                type="date"
-                className="form-control"
-                id="dateTo"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
-            <div className="col-md-4">
-              <button 
-                className="btn btn-outline-secondary w-100"
-                onClick={() => {
-                  setDateFrom('');
-                  setDateTo('');
-                }}
-              >
-                Сбросить фильтр
-              </button>
-            </div>
-          </div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h1 className="h3 mb-1">{league?.name}</h1>
+          {league?.area && (
+            <p className="text-secondary mb-0">{league.area.name}</p>
+          )}
+        </div>
+        <div className="text-secondary">
+          {matches.length} матчей • Страница {currentPage} из {totalPages || 1}
         </div>
       </div>
 
-      {matches.length > 0 ? (
-        <div className="matches-list">
-          {sortedDates.map(date => (
-            <div key={date} className="mb-4">
-              <h5 className="border-bottom pb-2 mb-3">{date}</h5>
-              <div className="list-group">
-                {groupedMatches[date].map(match => (
-                  <div key={match.id} className="list-group-item list-group-item-action">
-                    <div className="row align-items-center">
-                      <div className="col-md-2 text-md-center mb-2 mb-md-0">
-                        <div className="fw-bold">{formatTime(match.utcDate)}</div>
-                        <div className="small text-secondary">
-                          {formatMatchStatus(match.status)}
+      <div className="bg-light p-3 mb-4 rounded">
+        <div className="row g-2">
+          <div className="col-md-4">
+            <input
+              type="date"
+              className="form-control"
+              placeholder="Дата с"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="col-md-4">
+            <input
+              type="date"
+              className="form-control"
+              placeholder="Дата по"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+         
+        </div>
+      </div>
+
+      {currentMatches.length > 0 ? (
+        <>
+          <div className="d-flex flex-column gap-2">
+            {currentMatches.map(match => (
+              <div key={match.id} className="border p-3 rounded bg-white hover-border-primary">
+                <div className="d-block d-md-none">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <span className="fw-bold me-2">{formatDate(match.utcDate)}</span>
+                      <span className="text-secondary">{formatTime(match.utcDate)}</span>
+                    </div>
+                    <span className="badge bg-secondary bg-opacity-10 text-dark">
+                      {formatMatchStatus(match.status)}
+                    </span>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="text-end" style={{ width: '40%' }}>
+                      <span className="fw-bold">{match.homeTeam?.name}</span>
+                    </div>
+                    <div style={{ width: '20%', textAlign: 'center' }}>
+                      <span className="badge bg-light text-dark border px-2 py-1">
+                        {match.status === 'FINISHED' || match.status === 'IN_PLAY' || match.status === 'LIVE' || match.status === 'PAUSED'
+                          ? formatMatchScore(match.score) 
+                          : '- :-'
+                        }
+                      </span>
+                    </div>
+                    <div className="text-start" style={{ width: '40%' }}>
+                      <span className="fw-bold">{match.awayTeam?.name}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-none d-md-block">
+                  <div className="row align-items-center">
+                    <div className="col-2">
+                      <div className="fw-bold">{formatDate(match.utcDate)}</div>
+                      <div className="small text-secondary">{formatTime(match.utcDate)}</div>
+                    </div>
+                    <div className="col-2">
+                      <span className="badge bg-secondary bg-opacity-10 text-dark">
+                        {formatMatchStatus(match.status)}
+                      </span>
+                    </div>
+                    <div className="col-8">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="text-end" style={{ width: '45%' }}>
+                          <span className="fw-bold">{match.homeTeam?.name}</span>
                         </div>
-                      </div>
-
-                      <div className="col-md-10">
-                        <div className="row align-items-center">
-                          <div className="col-5 text-end">
-                            <span className="fw-bold">{match.homeTeam?.name}</span>
-                          </div>
-
-                          <div className="col-2 text-center">
-                            <span className="badge bg-light text-dark fs-6 p-2">
-                              {match.status === 'FINISHED' || match.status === 'IN_PLAY' || match.status === 'LIVE' || match.status === 'PAUSED'
-                                ? formatMatchScore(match.score) 
-                                : '- :-'
-                              }
-                            </span>
-                          </div>
-
-                          <div className="col-5 text-start">
-                            <span className="fw-bold">{match.awayTeam?.name}</span>
-                          </div>
+                        <div style={{ width: '10%', textAlign: 'center' }}>
+                          <span className="badge bg-light text-dark border px-3 py-2">
+                            {match.status === 'FINISHED' || match.status === 'IN_PLAY' || match.status === 'LIVE' || match.status === 'PAUSED'
+                              ? formatMatchScore(match.score) 
+                              : '- :-'
+                            }
+                          </span>
+                        </div>
+                        <div className="text-start" style={{ width: '45%' }}>
+                          <span className="fw-bold">{match.awayTeam?.name}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <nav className="mt-4">
+              <ul className="pagination justify-content-center">
+                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link"
+                    onClick={() => goToPage(currentPage - 1)}
+                  >
+                    ←
+                  </button>
+                </li>
+                
+                {[...Array(totalPages)].map((_, index) => {
+                  const page = index + 1;
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                        <button 
+                          className="page-link"
+                          onClick={() => goToPage(page)}
+                        >
+                          {page}
+                        </button>
+                      </li>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return (
+                      <li key={page} className="page-item disabled">
+                        <span className="page-link">...</span>
+                      </li>
+                    );
+                  }
+                  return null;
+                })}
+                
+                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link"
+                    onClick={() => goToPage(currentPage + 1)}
+                  >
+                    →
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          )}
+        </>
       ) : (
-        <div className="alert alert-info text-center" role="alert">
+        <div className="alert alert-info text-center">
           <p className="mb-0">Матчи не найдены</p>
           {(dateFrom || dateTo) && (
             <p className="small mt-2">
@@ -223,6 +280,17 @@ function LeagueCalendarPage() {
           )}
         </div>
       )}
+
+      <style>{`
+        .hover-border-primary {
+          transition: all 0.2s ease-in-out;
+          cursor: pointer;
+        }
+        .hover-border-primary:hover {
+          border-color: #0d6efd !important;
+          box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+      `}</style>
     </div>
   );
 }

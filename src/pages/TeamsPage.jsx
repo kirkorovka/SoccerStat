@@ -7,21 +7,19 @@ function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalTeams, setTotalTeams] = useState(0);
-  const teamsPerPage = 20;
+  const [itemsPerPage] = useState(6);
 
   useEffect(() => {
     fetchTeams();
-  }, [currentPage]);
+  }, []);
 
   const fetchTeams = async () => {
     try {
       setLoading(true);
-      const offset = (currentPage - 1) * teamsPerPage;
-      const data = await getTeams(teamsPerPage, offset);
-      setTeams(data.teams);
-      setTotalTeams(data.count);
+      const data = await getTeams(); 
+      setTeams(data.teams || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -35,7 +33,10 @@ function TeamsPage() {
     return teamName.includes(query);
   });
 
-  const totalPages = Math.ceil(totalTeams / teamsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredTeams.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredTeams.length / itemsPerPage);
 
   const goToPage = (page) => {
     setCurrentPage(page);
@@ -69,7 +70,7 @@ function TeamsPage() {
       <div className="mb-4">
         <h1 className="h2">Команды</h1>
         <p className="text-secondary">
-          {filteredTeams.length} из {totalTeams} команд
+          {filteredTeams.length} команд • Страница {currentPage} из {totalPages || 1}
         </p>
       </div>
 
@@ -80,38 +81,31 @@ function TeamsPage() {
           style={{ maxWidth: '400px' }}
           placeholder="Поиск по названию команды"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1);
+          }}
         />
       </div>
 
-      {filteredTeams.length > 0 ? (
+      {currentItems.length > 0 ? (
         <>
-          <div className="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3">
-            {filteredTeams.map(team => (
+          <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+            {currentItems.map(team => (
               <div key={team.id} className="col">
                 <Link 
                   to={`/teams/${team.id}`} 
                   className="text-decoration-none"
                 >
-                  <div className="card h-100 text-center p-3 hover-shadow transition">
-                    {team.crestUrl ? (
-                      <img 
-                        src={team.crestUrl} 
-                        alt={team.name}
-                        className="img-fluid mb-2"
-                        style={{ height: '60px', objectFit: 'contain' }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="bg-light rounded-circle mx-auto mb-2" 
-                           style={{ width: '60px', height: '60px' }}></div>
-                    )}
-                    <h6 className="card-title text-dark small mb-0">
-                      {team.name}
-                    </h6>
+                  <div className="card h-100 shadow-sm hover-shadow transition">
+                    <div className="card-body">
+                      <h5 className="card-title text-dark">{team.name}</h5>
+                      {team.area && (
+                        <p className="card-text text-secondary">
+                          {team.area.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </Link>
               </div>
@@ -130,11 +124,35 @@ function TeamsPage() {
                   </button>
                 </li>
                 
-                <li className="page-item disabled">
-                  <span className="page-link">
-                    {currentPage} из {totalPages}
-                  </span>
-                </li>
+                {[...Array(totalPages)].map((_, index) => {
+                  const page = index + 1;
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                        <button 
+                          className="page-link"
+                          onClick={() => goToPage(page)}
+                        >
+                          {page}
+                        </button>
+                      </li>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return (
+                      <li key={page} className="page-item disabled">
+                        <span className="page-link">...</span>
+                      </li>
+                    );
+                  }
+                  return null;
+                })}
                 
                 <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
                   <button 
@@ -154,7 +172,10 @@ function TeamsPage() {
           {searchQuery && (
             <button 
               className="btn btn-outline-primary btn-sm"
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('');
+                setCurrentPage(1);
+              }}
             >
               Очистить поиск
             </button>

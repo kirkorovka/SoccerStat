@@ -14,16 +14,21 @@ export const formatMatchStatus = (status) => {
 };
 
 export const formatMatchScore = (score) => {
-  if (!score?.fullTime?.homeTeam) return '– : –';
+  if (!score) return '- :-';
   
-  const parts = [`${score.fullTime.homeTeam}:${score.fullTime.awayTeam}`];
+  const parts = [];
   
-  if (score.extraTime?.homeTeam != null) {
-    parts.push(`(${score.extraTime.homeTeam}:${score.extraTime.awayTeam})`);
-  }
-  if (score.penalties?.homeTeam != null) {
-    parts.push(`(${score.penalties.homeTeam}:${score.penalties.awayTeam})`);
+  if (score.fullTime?.home !== null && score.fullTime?.home !== undefined) {
+    parts.push(`${score.fullTime.home}:${score.fullTime.away}`);
   }
   
-  return parts.join(' ');
+  if (score.extraTime?.home !== null && score.extraTime?.home !== undefined) {
+    parts.push(`(${score.extraTime.home}:${score.extraTime.away})`);
+  }
+  
+  if (score.penalties?.home !== null && score.penalties?.home !== undefined) {
+    parts.push(`(${score.penalties.home}:${score.penalties.away})`);
+  }
+  
+  return parts.join(' ') || '- :-';
 };

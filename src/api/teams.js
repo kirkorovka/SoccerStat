@@ -1,9 +1,9 @@
 import apiClient from './config';
 
 
-export async function getTeams(limit = 20, offset = 0) {
+export async function getTeams() {
   try {
-    const data = await apiClient(`/teams?limit=${limit}&offset=${offset}`);
+    const data = await apiClient('/teams');
     return {
       teams: data.teams || [],
       count: data.count || 0
