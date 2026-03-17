@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
+    base: '/SoccerStat/',
     server: {
       port: 3000,
       open: true,

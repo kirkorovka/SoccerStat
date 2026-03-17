@@ -1,8 +1,14 @@
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 
 async function apiClient(endpoint, options = {}) {
-  const url = `/api${endpoint}`;
+  // В продакшне используем полный URL, в разработке - прокси
+  const url = process.env.NODE_ENV === 'production' 
+    ? `${BASE_URL}${endpoint}`
+    : `/api${endpoint}`;
   
   const defaultHeaders = {
+    'X-Auth-Token': API_TOKEN,
     'Content-Type': 'application/json',
   };
 

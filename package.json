@@ -1,10 +1,13 @@
 {
   "name": "soccerstat",
+  "homepage": "https://kirkorovka.github.io/soccerstat",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{js,jsx,css,md}\""
@@ -39,6 +42,7 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "gh-pages": "^6.3.0",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
